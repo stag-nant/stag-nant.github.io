@@ -384,3 +384,5 @@ stockApi=/product/nextProduct?currentProductId=1%26path=http://192.168.0.12:8080
 ```
 
 **Why it works:** the filter often ignores everything after a fragment, but the backend still fetches the full URL after redirect resolution.
+
+Machine OWNED!!!
