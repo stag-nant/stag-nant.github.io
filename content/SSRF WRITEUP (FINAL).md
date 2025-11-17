@@ -5,7 +5,6 @@
 **Category:** Server-Side Request Forgery (SSRF) → Filter Bypass via Open Redirect  
 **Lab Difficulty:** Practitioner  
 **Date:** 20/11/2025
-tags: [WRITEUP]
 
 ---
 ## **Scope**
@@ -51,11 +50,11 @@ Use SSRF to reach the internal admin interface (`192.168.0.12:8080/admin`) and d
 
 I began by exploring the product pages and the stock-check feature.
 
-![[Pasted image 20251115115655.png]]
+![](attachment/6c7f287992d2f6ba23bcdacee340b78a.png)
 
 The stock-check endpoint triggers a server-side fetch to whatever URL is passed in `stockApi`.
 
-![[Pasted image 20251115115749.png]]
+![](attachment/c1ebea4788dbe050c92ee6ada62835a7.png)
 
 Intercepting the request in Burp confirmed this:
 
@@ -66,11 +65,11 @@ Content-Type: application/x-www-form-urlencoded
 stockApi=/product/stock/check?productId=1&storeId=1
 ```
 
-![[Screenshot 2025-11-15 094042 1.png]]
+![](attachment/91e47b8263ffbebeda55336eda0bd33f.png)
 
 I decoded the full request using CyberChef to understand how parameters were being parsed:
 
-![[Screenshot 2025-11-15 094347 1.png]]
+![](attachment/d6551a36d541fff378798f88e2bf9e72.png)
 
 This confirmed a **server-side fetch**, making this endpoint a strong SSRF candidate.
 
@@ -80,7 +79,7 @@ This confirmed a **server-side fetch**, making this endpoint a strong SSRF candi
 
 While browsing normally, I noticed a **Next product** link.
 
-![[Screenshot 2025-11-15 095105 1.png]]
+![](attachment/0159e7bd1c1b9a88459f9af8e0c61709.png)
 
 The request behind it was:
 
@@ -88,7 +87,7 @@ The request behind it was:
 /product/nextProduct?currentProductId=1&path=/product?productId=2
 ```
 
-![[Screenshot 2025-11-15 094554 1.png]]
+![](attachment/36193e43a4918dfdd5604f9e4fe8349d.png)
 
 Changing the `path=` value redirected the server to arbitrary URLs.  
 Testing with Google:
@@ -104,7 +103,7 @@ Returned:
 Location: https://www.google.com/
 ```
 
-![[Screenshot 2025-11-15 095008 1.png]]
+![](attachment/acae31feb80b2fe0bfc5cef95e99e92d.png)
 
 This confirmed a **fully functional open redirect**, and it became the key to bypassing the SSRF filter.
 
@@ -118,7 +117,7 @@ I tried exploring the internal admin endpoint through the redirect mechanism:
 /product/nextProduct?currentProductId=1&path=http://192.168.0.12:8080/admin
 ```
 
-![[Screenshot 2025-11-15 095235 2.png]]
+![](attachment/271246f9d3aa0a5031a44b8dc101ae42.png)
 
 Initially, I thought I could access the admin page directly, but I quickly realized:
 
@@ -127,7 +126,7 @@ Initially, I thought I could access the admin page directly, but I quickly reali
 
 After following the redirect:
 
-![[Screenshot 2025-11-15 095805 2.png]]
+![](attachment/073ed7b017c3d47f6bd194cda9144ed7.png)
 
 This confirmed I needed to combine this open redirect **inside** the SSRF flow rather than testing from the browser.
 
@@ -137,7 +136,7 @@ This confirmed I needed to combine this open redirect **inside** the SSRF flow r
 
 I stepped back and looked at the stock-fetch endpoint again.
 
-![[Screenshot 2025-11-15 094042 3.png]]
+![](attachment/7adfdf6a4a2e3284fadae6c3806d1b1e.png)
 
 **Idea:**  
 Use `stockApi` to call `nextProduct`, which then redirects internally to admin.
@@ -161,8 +160,8 @@ stockApi=/product/nextProduct?path=http://192.168.0.12:8080/admin
 
 This time, the server **successfully followed the redirect internally**, and returned the **admin HTML inside the SSRF response**.
 
-![[Screenshot 2025-11-15 102946.png]]
-![[Screenshot 2025-11-15 103030 3.png]]
+![](attachment/3acda638e0f64d8f9d7353cb9770fe7b.png)
+![](attachment/c9d7ba2b373c05f6de66603da43695f3.png)
 
 Inside this response, I saw:
 
@@ -171,7 +170,7 @@ Inside this response, I saw:
 /admin/delete?username=carlos
 ```
 
-![[Screenshot 2025-11-15 103107.png]]
+![](attachment/443453c41562058448d48e9b2d2bbe56.png)
 
 The SSRF pivot worked perfectly — I now had remote access to the internal admin panel.
 
@@ -194,7 +193,7 @@ Content-Type: application/x-www-form-urlencoded
 stockApi=/product/nextProduct?path=http://192.168.0.12:8080/admin/delete?username=carlos
 ```
 
-![[Screenshot 2025-11-15 103300.png]]
+![](attachment/60c6b29a80af9c02eebe732dbfb5eafa.png)
 
 The server returned:
 
@@ -202,7 +201,7 @@ The server returned:
 User deleted successfully!
 ```
 
-![[Screenshot 2025-11-15 103603.png]]
+![](attachment/00b2be738153db8054555b2d88bc5e3f.png)
 
 The lab interface showed:
 
@@ -384,5 +383,3 @@ stockApi=/product/nextProduct?currentProductId=1%26path=http://192.168.0.12:8080
 ```
 
 **Why it works:** the filter often ignores everything after a fragment, but the backend still fetches the full URL after redirect resolution.
-
-

@@ -9,9 +9,9 @@ Welcome to my digital archive. This is a collection of CTF writeups, penetration
 
 ### 📂 Target_Logs (Writeups)
 
-* [[Expressway Writeup (FINAL) 1]]
-* [[IDOR WRITEUP 1]]
-* [[SSRF WRITEUP (FINAL) 1]]
+* [[Expressway Writeup (FINAL)]]
+* [[IDOR WRITEUP]]
+* [[SSRF WRITEUP (FINAL)]]
 
 ---
 *End of transmission.*
