@@ -116,10 +116,9 @@ layout: page
   .cursor-ring {
     width: 32px; height: 32px; border: 2px solid var(--neon); border-radius: 50%;
     box-shadow: 0 0 14px var(--neon);
-    transition: width .2s ease, height .2s ease, opacity .2s ease, border-color .2s ease;
+    transition: width .2s ease, height .2s ease, opacity .2s ease, border-color .2s ease, transform .2s ease;
     opacity: 0.5;
   }
-  a:hover ~ .cursor-ring, button:hover ~ .cursor-ring { border-color: var(--accent); }
 
   /* Content container */
   .container {
@@ -180,7 +179,8 @@ layout: page
     position: absolute; inset: -1.5px; padding: 1.5px; border-radius: calc(var(--radius) + 2px);
     background: conic-gradient(from 0deg, var(--neon), var(--accent), var(--neon));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
     animation: spin 6s linear infinite;
     opacity: 0.18; pointer-events: none;
   }
@@ -455,238 +455,296 @@ layout: page
 (function() {
   'use strict';
 
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function init() {
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Elements
-  const matrix = document.getElementById('matrix');
-  const scanlines = document.querySelector('.scanlines');
-  const grid = document.querySelector('.grid-floor');
-  const progress = document.getElementById('progress');
-  const cursorDot = document.querySelector('.cursor-dot');
-  const cursorRing = document.querySelector('.cursor-ring');
-  const controls = {
-    matrix: document.getElementById('toggle-matrix'),
-    scan: document.getElementById('toggle-scan'),
-    cursor: document.getElementById('toggle-cursor'),
-    tilt: document.getElementById('toggle-tilt'),
-    theme: document.getElementById('theme-select'),
-  };
+    // Elements
+    const matrix = document.getElementById('matrix');
+    const scanlines = document.querySelector('.scanlines');
+    const grid = document.querySelector('.grid-floor');
+    const progress = document.getElementById('progress');
+    const cursorDot = document.querySelector('.cursor-dot');
+    const cursorRing = document.querySelector('.cursor-ring');
+    const controlsPanel = document.getElementById('controls');
 
-  // Persist settings
-  const storeKey = 'cyber-settings-v2';
-  const defaultSettings = { matrix: true, scan: true, cursor: true, tilt: true, theme: 'green' };
-  const saved = JSON.parse(localStorage.getItem(storeKey) || 'null') || defaultSettings;
+    if (!progress) return; // basic safety
 
-  // Apply saved settings
-  controls.matrix.checked = !!saved.matrix;
-  controls.scan.checked = !!saved.scan;
-  controls.cursor.checked = !!saved.cursor;
-  controls.tilt.checked = !!saved.tilt;
-  controls.theme.value = saved.theme || 'green';
-  applyTheme(saved.theme || 'green');
-
-  function saveSettings() {
-    const s = {
-      matrix: controls.matrix.checked,
-      scan: controls.scan.checked,
-      cursor: controls.cursor.checked,
-      tilt: controls.tilt.checked,
-      theme: controls.theme.value
+    const controls = {
+      matrix: document.getElementById('toggle-matrix'),
+      scan: document.getElementById('toggle-scan'),
+      cursor: document.getElementById('toggle-cursor'),
+      tilt: document.getElementById('toggle-tilt'),
+      theme: document.getElementById('theme-select'),
     };
-    localStorage.setItem(storeKey, JSON.stringify(s));
-  }
 
-  // Reading progress
-  const onScroll = () => {
-    const doc = document.documentElement;
-    const total = doc.scrollHeight - doc.clientHeight;
-    const scrolled = (doc.scrollTop || document.body.scrollTop) / (total || 1);
-    progress.style.width = (scrolled * 100).toFixed(2) + '%';
-  };
-  document.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+    const hasControls = controls.matrix && controls.scan && controls.cursor && controls.tilt && controls.theme;
 
-  // Scroll reveal
-  const revealEls = document.querySelectorAll('.reveal');
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (e.isIntersecting) {
-        e.target.classList.add('show');
-        io.unobserve(e.target);
+    const defaultSettings = { matrix: true, scan: true, cursor: true, tilt: true, theme: 'green' };
+    let saved = defaultSettings;
+
+    if (hasControls) {
+      try {
+        const raw = localStorage.getItem('cyber-settings-v2');
+        if (raw) saved = Object.assign({}, defaultSettings, JSON.parse(raw));
+      } catch (e) {
+        saved = defaultSettings;
       }
     }
-  }, { threshold: 0.1 });
-  revealEls.forEach(el => io.observe(el));
 
-  // 3D tilt + shine for cards
-  let tiltEnabled = !prefersReduced && controls.tilt.checked;
-  const tiltCards = Array.from(document.querySelectorAll('.tilt'));
-  const maxRotate = 8; // deg
-  function handleTilt(e) {
-    if (!tiltEnabled) return;
-    const el = e.currentTarget;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    const rx = (0.5 - y) * maxRotate;
-    const ry = (x - 0.5) * maxRotate;
-    el.style.setProperty('--mx', x);
-    el.style.setProperty('--my', y);
-    el.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;
-  }
-  function leaveTilt(e) {
-    const el = e.currentTarget;
-    el.style.transform = 'rotateX(0) rotateY(0)';
-  }
-  function bindTilt(bind) {
-    tiltCards.forEach(el => {
-      el.style.willChange = bind ? 'transform' : 'auto';
-      if (bind) {
-        el.addEventListener('pointermove', handleTilt);
-        el.addEventListener('pointerleave', leaveTilt);
-      } else {
-        el.removeEventListener('pointermove', handleTilt);
-        el.removeEventListener('pointerleave', leaveTilt);
-        el.style.transform = 'none';
+    function saveSettings() {
+      if (!hasControls) return;
+      const s = {
+        matrix: controls.matrix.checked,
+        scan: controls.scan.checked,
+        cursor: controls.cursor.checked,
+        tilt: controls.tilt.checked,
+        theme: controls.theme.value
+      };
+      try {
+        localStorage.setItem('cyber-settings-v2', JSON.stringify(s));
+      } catch (e) {}
+    }
+
+    // Apply saved settings if controls exist
+    if (hasControls) {
+      controls.matrix.checked = !!saved.matrix;
+      controls.scan.checked = !!saved.scan;
+      controls.cursor.checked = !!saved.cursor;
+      controls.tilt.checked = !!saved.tilt;
+      controls.theme.value = saved.theme || 'green';
+    }
+
+    function applyTheme(name) {
+      document.body.classList.remove('theme-green', 'theme-purple', 'theme-cyan');
+      const cls = name === 'purple' ? 'theme-purple' : name === 'cyan' ? 'theme-cyan' : 'theme-green';
+      document.body.classList.add(cls);
+    }
+
+    applyTheme(saved.theme || 'green');
+
+    // Reading progress
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const total = doc.scrollHeight - doc.clientHeight;
+      const scrolled = (doc.scrollTop || document.body.scrollTop) / (total || 1);
+      progress.style.width = (scrolled * 100).toFixed(2) + '%';
+    };
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Scroll reveal
+    const revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add('show');
+            io.unobserve(e.target);
+          }
+        }
+      }, { threshold: 0.1 });
+      revealEls.forEach(el => io.observe(el));
+    } else {
+      revealEls.forEach(el => el.classList.add('show'));
+    }
+
+    // 3D tilt + shine for cards
+    let tiltEnabled = !prefersReduced && (!hasControls || controls.tilt.checked);
+    const tiltCards = Array.from(document.querySelectorAll('.tilt'));
+    const maxRotate = 8; // deg
+
+    function handleTilt(e) {
+      if (!tiltEnabled) return;
+      const el = e.currentTarget;
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      const rx = (0.5 - y) * maxRotate;
+      const ry = (x - 0.5) * maxRotate;
+      el.style.setProperty('--mx', x);
+      el.style.setProperty('--my', y);
+      el.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;
+    }
+
+    function leaveTilt(e) {
+      const el = e.currentTarget;
+      el.style.transform = 'rotateX(0) rotateY(0)';
+    }
+
+    function bindTilt(bind) {
+      tiltCards.forEach(el => {
+        el.style.willChange = bind ? 'transform' : 'auto';
+        if (bind) {
+          el.addEventListener('pointermove', handleTilt);
+          el.addEventListener('pointerleave', leaveTilt);
+        } else {
+          el.removeEventListener('pointermove', handleTilt);
+          el.removeEventListener('pointerleave', leaveTilt);
+          el.style.transform = 'none';
+        }
+      });
+    }
+    bindTilt(tiltEnabled);
+
+    // Matrix rain
+    let matrixEnabled = !prefersReduced && (!hasControls || controls.matrix.checked);
+    let ctx = null;
+    let fontSize = 16;
+    let columns = 0;
+    let drops = [];
+    const chars = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    function matrixResize() {
+      if (!matrixEnabled || !matrix) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      matrix.width = w * dpr;
+      matrix.height = h * dpr;
+      matrix.style.width = w + 'px';
+      matrix.style.height = h + 'px';
+      ctx = matrix.getContext('2d');
+      if (!ctx) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fontSize = 16;
+      columns = Math.floor(w / fontSize);
+      drops = Array(columns).fill(1);
+    }
+
+    function matrixDraw() {
+      if (!matrixEnabled || !ctx || prefersReduced) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon').trim() || '#00ff41';
+      ctx.font = fontSize + 'px monospace';
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars.charAt(Math.floor(Math.random() * chars.length));
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        ctx.fillText(text, x, y);
+        if (y > h && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
       }
-    });
-  }
-  bindTilt(tiltEnabled);
-
-  // Matrix rain
-  let matrixEnabled = !prefersReduced && controls.matrix.checked;
-  let ctx = null, width = 0, height = 0, fontSize = 16, columns = 0, drops = [];
-  const chars = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  function matrixResize() {
-    if (!matrixEnabled) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    width = matrix.width = window.innerWidth * dpr;
-    height = matrix.height = window.innerHeight * dpr;
-    matrix.style.width = window.innerWidth + 'px';
-    matrix.style.height = window.innerHeight + 'px';
-    ctx = matrix.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    fontSize = 16;
-    columns = Math.floor(window.innerWidth / fontSize);
-    drops = Array(columns).fill(1);
-  }
-  function matrixDraw() {
-    if (!matrixEnabled || prefersReduced) return;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon').trim();
-    ctx.font = fontSize + 'px monospace';
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars.charAt(Math.floor(Math.random() * chars.length));
-      const x = i * fontSize;
-      const y = drops[i] * fontSize;
-      ctx.fillText(text, x, y);
-      if (y > window.innerHeight && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
+      if (matrixEnabled) {
+        requestAnimationFrame(matrixDraw);
+      }
     }
-    requestAnimationFrame(matrixDraw);
-  }
 
-  // Start matrix
-  if (matrixEnabled) {
-    matrixResize();
-    requestAnimationFrame(matrixDraw);
-    window.addEventListener('resize', matrixResize);
-  }
-
-  // Neon cursor
-  let cursorEnabled = !prefersReduced && controls.cursor.checked;
-  let cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-  let rx = cx, ry = cy;
-  function moveCursor(e) {
-    if (!cursorEnabled) return;
-    cx = e.clientX; cy = e.clientY;
-    cursorDot.style.transform = `translate(${cx}px, ${cy}px)`;
-  }
-  function animateRing() {
-    if (!cursorEnabled) {
-      cursorRing.style.opacity = '0';
-      cursorDot.style.opacity = '0';
-      return;
-    }
-    rx += (cx - rx) * 0.2; ry += (cy - ry) * 0.2;
-    cursorRing.style.transform = `translate(${rx}px, ${ry}px)`;
-    requestAnimationFrame(animateRing);
-  }
-  if (cursorEnabled) {
-    document.addEventListener('pointermove', moveCursor, { passive: true });
-    animateRing();
-  } else {
-    cursorRing.style.display = 'none';
-    cursorDot.style.display = 'none';
-  }
-
-  // Scanlines toggle helper
-  function setScanlines(on) {
-    scanlines.style.display = on ? 'block' : 'none';
-    grid.style.display = on ? 'block' : 'none';
-  }
-
-  // Theme
-  function applyTheme(name) {
-    document.body.classList.remove('theme-green', 'theme-purple', 'theme-cyan');
-    const cls = name === 'purple' ? 'theme-purple' : name === 'cyan' ? 'theme-cyan' : 'theme-green';
-    document.body.classList.add(cls);
-  }
-
-  // Bind control changes
-  controls.matrix.addEventListener('change', () => {
-    matrixEnabled = controls.matrix.checked && !prefersReduced;
-    if (matrixEnabled) {
-      matrix.style.display = 'block';
+    if (matrixEnabled && matrix) {
       matrixResize();
       requestAnimationFrame(matrixDraw);
       window.addEventListener('resize', matrixResize);
-    } else {
+    } else if (matrix) {
       matrix.style.display = 'none';
-      window.removeEventListener('resize', matrixResize);
     }
-    saveSettings();
-  });
 
-  controls.scan.addEventListener('change', () => {
-    setScanlines(controls.scan.checked && !prefersReduced);
-    saveSettings();
-  });
-  setScanlines(controls.scan.checked && !prefersReduced);
+    // Neon cursor
+    let cursorEnabled = !prefersReduced && (!hasControls || controls.cursor.checked) && cursorDot && cursorRing;
+    let cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    let rx = cx, ry = cy;
 
-  controls.cursor.addEventListener('change', () => {
-    cursorEnabled = controls.cursor.checked && !prefersReduced;
+    function moveCursor(e) {
+      if (!cursorEnabled || !cursorDot) return;
+      cx = e.clientX; cy = e.clientY;
+      cursorDot.style.transform = `translate(${cx}px, ${cy}px)`;
+    }
+
+    function animateRing() {
+      if (!cursorEnabled || !cursorRing) {
+        if (cursorRing) cursorRing.style.opacity = '0';
+        if (cursorDot) cursorDot.style.opacity = '0';
+        return;
+      }
+      rx += (cx - rx) * 0.2; ry += (cy - ry) * 0.2;
+      cursorRing.style.transform = `translate(${rx}px, ${ry}px)`;
+      requestAnimationFrame(animateRing);
+    }
+
     if (cursorEnabled) {
-      cursorRing.style.display = 'block';
-      cursorDot.style.display = 'block';
       document.addEventListener('pointermove', moveCursor, { passive: true });
       animateRing();
     } else {
-      cursorRing.style.display = 'none';
-      cursorDot.style.display = 'none';
-      document.removeEventListener('pointermove', moveCursor);
+      if (cursorRing) cursorRing.style.display = 'none';
+      if (cursorDot) cursorDot.style.display = 'none';
     }
-    saveSettings();
-  });
 
-  controls.tilt.addEventListener('change', () => {
-    tiltEnabled = controls.tilt.checked && !prefersReduced;
-    bindTilt(tiltEnabled);
-    saveSettings();
-  });
+    // Scanlines + grid toggle helper
+    function setScanlines(on) {
+      if (scanlines) scanlines.style.display = on ? 'block' : 'none';
+      if (grid) grid.style.display = on ? 'block' : 'none';
+    }
 
-  controls.theme.addEventListener('change', () => {
-    applyTheme(controls.theme.value);
-    saveSettings();
-  });
+    if (hasControls) {
+      // Initial scanlines state
+      setScanlines(controls.scan.checked && !prefersReduced);
+    } else {
+      setScanlines(!prefersReduced);
+    }
 
-  // Accessibility: disable heavy effects if user prefers reduced motion
-  if (prefersReduced) {
-    if (matrix) matrix.style.display = 'none';
-    setScanlines(false);
-    cursorRing.style.display = 'none';
-    cursorDot.style.display = 'none';
+    // Bind control changes (only if controls exist)
+    if (hasControls) {
+      controls.matrix.addEventListener('change', () => {
+        matrixEnabled = controls.matrix.checked && !prefersReduced;
+        if (matrixEnabled && matrix) {
+          matrix.style.display = 'block';
+          matrixResize();
+          requestAnimationFrame(matrixDraw);
+          window.addEventListener('resize', matrixResize);
+        } else if (matrix) {
+          matrix.style.display = 'none';
+          window.removeEventListener('resize', matrixResize);
+        }
+        saveSettings();
+      });
+
+      controls.scan.addEventListener('change', () => {
+        setScanlines(controls.scan.checked && !prefersReduced);
+        saveSettings();
+      });
+
+      controls.cursor.addEventListener('change', () => {
+        cursorEnabled = controls.cursor.checked && !prefersReduced && cursorDot && cursorRing;
+        if (cursorEnabled) {
+          if (cursorRing) { cursorRing.style.display = 'block'; cursorRing.style.opacity = '0.5'; }
+          if (cursorDot) { cursorDot.style.display = 'block'; cursorDot.style.opacity = '0.9'; }
+          document.addEventListener('pointermove', moveCursor, { passive: true });
+          animateRing();
+        } else {
+          if (cursorRing) cursorRing.style.display = 'none';
+          if (cursorDot) cursorDot.style.display = 'none';
+          document.removeEventListener('pointermove', moveCursor);
+        }
+        saveSettings();
+      });
+
+      controls.tilt.addEventListener('change', () => {
+        tiltEnabled = controls.tilt.checked && !prefersReduced;
+        bindTilt(tiltEnabled);
+        saveSettings();
+      });
+
+      controls.theme.addEventListener('change', () => {
+        applyTheme(controls.theme.value);
+        saveSettings();
+      });
+    }
+
+    // Accessibility: disable heavy effects if user prefers reduced motion
+    if (prefersReduced) {
+      if (matrix) matrix.style.display = 'none';
+      setScanlines(false);
+      if (cursorRing) cursorRing.style.display = 'none';
+      if (cursorDot) cursorDot.style.display = 'none';
+      if (controlsPanel) controlsPanel.style.display = 'none';
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
 })();
