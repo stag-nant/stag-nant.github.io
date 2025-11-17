@@ -186,9 +186,18 @@ layout: page
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Reveal on scroll */
-  .reveal { opacity: 0; transform: translateY(14px) scale(0.98); }
-  .reveal.show { opacity: 1; transform: translateY(0) scale(1); transition: all .6s cubic-bezier(.2,.6,.2,1); }
+/* Reveal on scroll (safe default: visible even if JS fails) */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: all .6s cubic-bezier(.2,.6,.2,1);
+}
+
 
   /* Status badge */
   .status-active {
