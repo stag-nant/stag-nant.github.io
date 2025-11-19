@@ -172,9 +172,9 @@ skills:
 
 ### 📝 Latest Writeups
 
-- [[Expressway Writeup (FINAL)]]
+- [[Expressway Writeup]]
 - [[IDOR WRITEUP]]
-- [[SSRF WRITEUP (FINAL)]]
+- [[SSRF WRITEUP]]
 
 -----
 

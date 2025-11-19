@@ -4,8 +4,6 @@
 **Author:** Muhil M  
 **Category:** Access Control → Broken Access Control (IDOR-class behavior)  
 **Lab Difficulty:** Practitioner  
-**Date:** 16/11/2025  
-**Status:** Solved
 
 ---
 

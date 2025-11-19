@@ -1,6 +1,10 @@
 
 # Expressway — Hack The Box Writeup
 
+**Author:** Muhil M  
+**Category:** Linux
+**Lab Difficulty:** Easy 
+
 ---
 
 ## • TLDR Summary

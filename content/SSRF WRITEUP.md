@@ -4,7 +4,6 @@
 **Author:** Muhil M  
 **Category:** Server-Side Request Forgery (SSRF) → Filter Bypass via Open Redirect  
 **Lab Difficulty:** Practitioner  
-**Date:** 20/11/2025
 
 ---
 ## **Scope**
