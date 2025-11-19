@@ -59,7 +59,7 @@ layout: page
 
 <div class="scanlines"></div>
 
-# <span class="glitch">🚩 SYSTEM_READY</span>
+# 🚩 SYSTEM_READY
 
 <div class="cyber-box">
   <h4>OPERATOR_PROFILE</h4>
@@ -74,7 +74,7 @@ layout: page
 
 ---
 
-### 📡 Signal Trace (Background) <span class="blink">_</span>
+### 📡 Signal Trace (Background)
 
 I bridge the gap between kinetic military operations and digital security.
 
