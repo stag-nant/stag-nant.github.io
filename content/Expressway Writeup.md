@@ -260,7 +260,7 @@ Root: 7bce1fefd843c173b7824252b51e36c6
 
 ---
 
-## Why the Exploit Worked (Concise)
+## Why the Exploit Worked 
 
 ###  1. IKE Aggressive Mode leaked identity
 
@@ -285,7 +285,7 @@ User `ike` could read `/var/log/squid/`, exposing `offramp.expressway.htb`, whic
 
 ---
 
-## How to Remediate (Concise)
+## How to Remediate 
 
 ### 1. Disable IKE Aggressive Mode
 
