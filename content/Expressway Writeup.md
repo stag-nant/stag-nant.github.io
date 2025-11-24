@@ -1,9 +1,10 @@
-
 # Expressway — Hack The Box Writeup
 
-**Author:** Muhil M  
-**Category:** Linux
-**Lab Difficulty:** Easy 
+**Machine Information:**
+- **Author:** Muhil M  
+- **Name:** Expressway
+- **Difficulty:** Easy
+- **Operating System:** Linux (Ubuntu 22.04.5 LTS)
 
 ---
 
