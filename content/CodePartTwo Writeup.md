@@ -914,6 +914,74 @@ cat /tmp/root_restore/root/root.txt
 
 ---
 
+## Why the Exploit Worked
+
+### • 1. Unsafe server-side JS execution
+
+The app passed **untrusted user JS** directly into `js2py.eval_js()` allowing attacker-supplied code to run on the server.
+
+### • 2. js2py sandbox escape (CVE-2024-28397)
+
+`js2py.disable_pyimport()` was present but insufficient — prototype/property traversal (`__class__`, `__base__`, `__subclasses__()`) allowed escaping the JS layer and reaching Python internals.
+
+### • 3. Direct access to `subprocess.Popen`
+
+Once Python classes were reachable, the exploit located `subprocess.Popen` and executed system commands (reverse shell) — full remote code execution.
+
+### • 4. Weak credential storage (MD5)
+
+User passwords were hashed with **MD5**, making offline cracking trivial (rockyou easily recovered `marco`'s password).
+
+### • 5. Dangerous sudo configuration (npbackup-cli)
+
+`marco` had `NOPASSWD` rights to `/usr/local/bin/npbackup-cli` and the tool accepted custom config files. Running it as root allowed backing up and extracting `/root`, exposing `root.txt` and private keys.
+
+---
+
+## • How to Remediate
+
+### • 1. Remove/effectively sandbox server-side JS execution
+
+- Do **not** evaluate untrusted JS. If execution is required, run it in a hardened, isolated sandbox (container, separate VM, or hardened JS runtime with strict syscall/file/network restrictions).
+- Prefer design changes: avoid server-side code execution features on public-facing apps.
+
+### • 2. Patch / replace js2py usage
+
+- Upgrade js2py to a fixed version if available **or** stop using js2py for untrusted input.
+- Ensure any JS-to-Python layer cannot access Python internals (`__class__`, `__base__`, `__subclasses__`) — but safer to remove the attack surface entirely.
+
+### • 3. Use strong password hashing & policies
+
+- Replace MD5 with **bcrypt / Argon2 / scrypt**.
+- Enforce strong password rules and rate-limiting/account lockouts to reduce brute-force risk.
+
+### • 4. Harden sudo and backup tooling
+
+- Remove `NOPASSWD` for risky commands.
+- Do **not** allow untrusted users to pass arbitrary config files to privileged backup utilities.
+- If a backup tool must run as root, restrict config paths to root-owned locations and validate/whitelist allowed actions.
+
+### • 5. Least privilege & log access control
+
+- Limit group memberships (don’t give app users access to sensitive data).
+- Restrict read access to system directories (`/root`, `/etc`, logs`) to necessary admins only.
+
+### • 6. Monitoring & defense-in-depth
+
+- Log and alert on unusual code-execution API usage and unexpected snapshot/backup operations.
+- Periodically scan for risky patterns (evals, direct subprocess calls) in the codebase.
+
+---
+
+##  Key Takeaways
+
+- **Never eval untrusted code server-side.** Server-side code runners are high-risk features.
+- **Library “hardening” is not a substitute for design changes.** `disable_pyimport()` was not enough — remove or isolate the feature.
+- **Weak hashes = easy compromise.** MD5 makes credential theft trivial in a breach.
+- **Sudo + flexible config = full root.** Privileged binaries that accept user-controlled config or paths are an escalation time-bomb.
+- **Defence-in-depth wins:** combine secure design (no eval), strong crypto (bcrypt/Argon2), strict sudo policies, and monitoring to prevent single-point exploit chains.
+
+---
 ## Conclusion
 
 ### Summary of Attack Path
